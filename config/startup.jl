@@ -10,11 +10,22 @@ if Base.isinteractive() && (local REPL = get(Base.loaded_modules, Base.PkgId(Bas
             end
         end
     end
+    
+    atreplinit() do repl
+    @eval begin
+        import JuliaSyntax
+        JuliaSyntax.enable_in_core!(true)
+    end
+end
 
     atreplinit() do repl
         try
             @eval (using OhMyREPL; colorscheme!("Monokai16"))
             @eval using Revise
+            @eval begin
+                import JuliaSyntax
+                JuliaSyntax.enable_in_core!(true)
+            end
         catch e
             @warn "error while importing OhMyREPL or Revise" e
         end
