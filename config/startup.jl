@@ -3,7 +3,7 @@ if Base.isinteractive() && (local REPL = get(Base.loaded_modules, Base.PkgId(Bas
     # Setup OhMyREPL and Revise
     import Pkg
     let
-        pkgs = ["Revise", "OhMyREPL"]
+        pkgs = ["Revise", "OhMyREPL", "JuliaSyntax"]
         for pkg in pkgs
             if Base.find_package(pkg) === nothing
                 Pkg.add(pkg)
