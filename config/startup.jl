@@ -3,14 +3,14 @@ if Base.isinteractive() && (local REPL = get(Base.loaded_modules, Base.PkgId(Bas
     # Setup OhMyREPL and Revise
     import Pkg
     let
-        pkgs = ["Revise", "OhMyREPL", "JuliaSyntax"]
+        pkgs = ["Revise", "OhMyREPL", "JuliaSyntax", "BasicAutoloads"]
         for pkg in pkgs
             if Base.find_package(pkg) === nothing
                 Pkg.add(pkg)
             end
         end
     end
-    
+
     atreplinit() do repl
     @eval begin
         import JuliaSyntax
@@ -31,38 +31,16 @@ end
         end
     end
 
-    # Automatically load tooling on demand:
-    # - BenchmarkTools.jl when encountering @btime or @benchmark
-    # - Cthulhu.jl when encountering @descend(_code_(typed|warntype))
-    # - Debugger.jl when encountering @enter or @run
-    # - Profile.jl when encountering @profile
-    # - ProfileView.jl when encountering @profview
-    local tooling_dict = Dict{Symbol,Vector{Symbol}}(
-        :BenchmarkTools => Symbol.(["@btime", "@benchmark"]),
-        # :Debugger       => Symbol.(["@enter", "@run"]),
-        # :Profile        => Symbol.(["@profile"]),
-        # :ProfileView    => Symbol.(["@profview"]),
-    )
-    pushfirst!(REPL.repl_ast_transforms,
-        function(ast::Union{Expr,Nothing})
-            function contains_macro(ast, m)
-                return ast isa Expr && (
-                    (Meta.isexpr(ast, :macrocall) && ast.args[1] === m) ||
-                    any(x -> contains_macro(x, m), ast.args)
-                )
-            end
-            for (mod, macros) in tooling_dict
-                if any(contains_macro(ast, s) for s in macros) && !isdefined(Main, mod)
-                    @info "Loading $mod ..."
-                    try
-                        Core.eval(Main, :(using $mod))
-                    catch err
-                        @info "Failed to automatically load $mod" exception=err
-                    end
-                end
-            end
-            return ast
-        end
-    )
+    if isinteractive()
+        import BasicAutoloads
+        BasicAutoloads.register_autoloads([
+            ["@b", "@be"]            => :(using Chairmarks),
+            ["@benchmark"]           => :(using BenchmarkTools),
+            ["@test", "@testset", "@test_broken", "@test_deprecated", "@test_logs",
+            "@test_nowarn", "@test_skip", "@test_throws", "@test_warn", "@inferred"] =>
+                                        :(using Test),
+            ["@about"]               => :(using About; macro about(x) Expr(:call, About.about, x) end),
+        ])
+    end
 
  end
